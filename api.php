@@ -26,7 +26,7 @@ function salvarUsuarios($arquivo, $usuarios)
 {
     file_put_contents(
         $arquivo,
-        json_encode($usuarios, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        json_encode(array_values($usuarios), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
     );
 }
 
@@ -37,10 +37,85 @@ function responder($dados, $status = 200)
     exit;
 }
 
+function erroValidacao($erros)
+{
+    responder([
+        'error' => true,
+        'status' => 422,
+        'message' => 'Dados inválidos',
+        'errors' => $erros
+    ], 422);
+}
+
 function lerJson()
 {
     $conteudo = file_get_contents('php://input');
-    return json_decode($conteudo, true) ?? [];
+    $dados = json_decode($conteudo, true);
+
+    if ($conteudo !== '' && json_last_error() !== JSON_ERROR_NONE) {
+        responder([
+            'error' => true,
+            'status' => 400,
+            'message' => 'JSON inválido'
+        ], 400);
+    }
+
+    return $dados ?? [];
+}
+
+function validarUsuario($dados, $parcial = false)
+{
+    $erros = [];
+
+    if (!$parcial || array_key_exists('nome', $dados)) {
+        $nome = trim((string) ($dados['nome'] ?? ''));
+
+        if ($nome === '') {
+            $erros['nome'] = 'O nome é obrigatório.';
+        } elseif (mb_strlen($nome) < 3) {
+            $erros['nome'] = 'O nome deve ter pelo menos 3 caracteres.';
+        } elseif (mb_strlen($nome) > 100) {
+            $erros['nome'] = 'O nome deve ter no máximo 100 caracteres.';
+        }
+    }
+
+    if (!$parcial || array_key_exists('email', $dados)) {
+        $email = trim((string) ($dados['email'] ?? ''));
+
+        if ($email === '') {
+            $erros['email'] = 'O e-mail é obrigatório.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $erros['email'] = 'Informe um e-mail válido.';
+        }
+    }
+
+    if (!$parcial || array_key_exists('idade', $dados)) {
+        $idade = $dados['idade'] ?? null;
+
+        if ($idade === null || $idade === '') {
+            $erros['idade'] = 'A idade é obrigatória.';
+        } elseif (filter_var($idade, FILTER_VALIDATE_INT) === false) {
+            $erros['idade'] = 'A idade deve ser um número inteiro.';
+        } elseif ((int) $idade < 0 || (int) $idade > 120) {
+            $erros['idade'] = 'A idade deve estar entre 0 e 120.';
+        }
+    }
+
+    return $erros;
+}
+
+function emailEmUso($usuarios, $email, $ignorarId = null)
+{
+    foreach ($usuarios as $usuario) {
+        if (
+            strtolower($usuario['email']) === strtolower($email) &&
+            ($ignorarId === null || $usuario['id'] !== $ignorarId)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 $usuarios = carregarUsuarios($arquivo);
@@ -55,31 +130,110 @@ if ($metodo === 'GET') {
             }
         }
 
-        responder(['erro' => 'Usuário não encontrado'], 404);
+        responder([
+            'error' => true,
+            'status' => 404,
+            'message' => 'Usuário não encontrado'
+        ], 404);
     }
 
-    responder($usuarios);
+    $resultado = $usuarios;
+
+    if (isset($_GET['nome']) && trim($_GET['nome']) !== '') {
+        $nome = mb_strtolower(trim($_GET['nome']));
+
+        $resultado = array_filter($resultado, function ($usuario) use ($nome) {
+            return str_contains(mb_strtolower($usuario['nome']), $nome);
+        });
+    }
+
+    if (isset($_GET['email']) && trim($_GET['email']) !== '') {
+        $email = mb_strtolower(trim($_GET['email']));
+
+        $resultado = array_filter($resultado, function ($usuario) use ($email) {
+            return str_contains(mb_strtolower($usuario['email']), $email);
+        });
+    }
+
+    if (isset($_GET['idade']) && $_GET['idade'] !== '') {
+        if (filter_var($_GET['idade'], FILTER_VALIDATE_INT) === false) {
+            erroValidacao(['idade' => 'O filtro de idade deve ser um número inteiro.']);
+        }
+
+        $idade = (int) $_GET['idade'];
+
+        $resultado = array_filter($resultado, function ($usuario) use ($idade) {
+            return (int) $usuario['idade'] === $idade;
+        });
+    }
+
+    $camposOrdenacao = ['id', 'nome', 'email', 'idade'];
+    $sort = $_GET['sort'] ?? 'id';
+    $order = strtolower($_GET['order'] ?? 'asc');
+
+    if (!in_array($sort, $camposOrdenacao, true)) {
+        erroValidacao([
+            'sort' => 'Campo de ordenação inválido. Use id, nome, email ou idade.'
+        ]);
+    }
+
+    if (!in_array($order, ['asc', 'desc'], true)) {
+        erroValidacao([
+            'order' => 'Direção inválida. Use asc ou desc.'
+        ]);
+    }
+
+    usort($resultado, function ($a, $b) use ($sort, $order) {
+        $valorA = $a[$sort];
+        $valorB = $b[$sort];
+
+        if (is_string($valorA)) {
+            $comparacao = strcasecmp($valorA, $valorB);
+        } else {
+            $comparacao = $valorA <=> $valorB;
+        }
+
+        return $order === 'desc' ? -$comparacao : $comparacao;
+    });
+
+    responder([
+        'total' => count($resultado),
+        'filtros' => [
+            'nome' => $_GET['nome'] ?? null,
+            'email' => $_GET['email'] ?? null,
+            'idade' => isset($_GET['idade']) && $_GET['idade'] !== '' ? (int) $_GET['idade'] : null
+        ],
+        'ordenacao' => [
+            'campo' => $sort,
+            'direcao' => $order
+        ],
+        'dados' => array_values($resultado)
+    ]);
 }
 
 if ($metodo === 'POST') {
     $dados = lerJson();
+    $erros = validarUsuario($dados);
 
-    if (empty($dados['nome']) || empty($dados['email'])) {
-        responder(['erro' => 'Nome e e-mail são obrigatórios'], 400);
+    if ($erros) {
+        erroValidacao($erros);
     }
 
-    $novoId = 1;
+    $email = trim($dados['email']);
 
-    if (count($usuarios) > 0) {
-        $ids = array_column($usuarios, 'id');
-        $novoId = max($ids) + 1;
+    if (emailEmUso($usuarios, $email)) {
+        erroValidacao(['email' => 'Este e-mail já está cadastrado.']);
     }
+
+    $novoId = count($usuarios) > 0
+        ? max(array_column($usuarios, 'id')) + 1
+        : 1;
 
     $novoUsuario = [
         'id' => $novoId,
         'nome' => trim($dados['nome']),
-        'email' => trim($dados['email']),
-        'idade' => $dados['idade'] ?? null
+        'email' => $email,
+        'idade' => (int) $dados['idade']
     ];
 
     $usuarios[] = $novoUsuario;
@@ -90,13 +244,24 @@ if ($metodo === 'POST') {
 
 if ($metodo === 'PUT') {
     if ($id === null) {
-        responder(['erro' => 'Informe o ID'], 400);
+        responder([
+            'error' => true,
+            'status' => 400,
+            'message' => 'Informe o ID'
+        ], 400);
     }
 
     $dados = lerJson();
+    $erros = validarUsuario($dados);
 
-    if (empty($dados['nome']) || empty($dados['email']) || !isset($dados['idade'])) {
-        responder(['erro' => 'PUT exige nome, email e idade'], 400);
+    if ($erros) {
+        erroValidacao($erros);
+    }
+
+    $email = trim($dados['email']);
+
+    if (emailEmUso($usuarios, $email, $id)) {
+        erroValidacao(['email' => 'Este e-mail já está cadastrado.']);
     }
 
     foreach ($usuarios as $indice => $usuario) {
@@ -104,8 +269,8 @@ if ($metodo === 'PUT') {
             $usuarios[$indice] = [
                 'id' => $id,
                 'nome' => trim($dados['nome']),
-                'email' => trim($dados['email']),
-                'idade' => $dados['idade']
+                'email' => $email,
+                'idade' => (int) $dados['idade']
             ];
 
             salvarUsuarios($arquivo, $usuarios);
@@ -113,15 +278,40 @@ if ($metodo === 'PUT') {
         }
     }
 
-    responder(['erro' => 'Usuário não encontrado'], 404);
+    responder([
+        'error' => true,
+        'status' => 404,
+        'message' => 'Usuário não encontrado'
+    ], 404);
 }
 
 if ($metodo === 'PATCH') {
     if ($id === null) {
-        responder(['erro' => 'Informe o ID'], 400);
+        responder([
+            'error' => true,
+            'status' => 400,
+            'message' => 'Informe o ID'
+        ], 400);
     }
 
     $dados = lerJson();
+
+    if (empty($dados)) {
+        erroValidacao(['body' => 'Envie ao menos um campo para atualizar.']);
+    }
+
+    $erros = validarUsuario($dados, true);
+
+    if ($erros) {
+        erroValidacao($erros);
+    }
+
+    if (
+        array_key_exists('email', $dados) &&
+        emailEmUso($usuarios, trim($dados['email']), $id)
+    ) {
+        erroValidacao(['email' => 'Este e-mail já está cadastrado.']);
+    }
 
     foreach ($usuarios as $indice => $usuario) {
         if ($usuario['id'] === $id) {
@@ -134,7 +324,7 @@ if ($metodo === 'PATCH') {
             }
 
             if (array_key_exists('idade', $dados)) {
-                $usuarios[$indice]['idade'] = $dados['idade'];
+                $usuarios[$indice]['idade'] = (int) $dados['idade'];
             }
 
             salvarUsuarios($arquivo, $usuarios);
@@ -142,12 +332,20 @@ if ($metodo === 'PATCH') {
         }
     }
 
-    responder(['erro' => 'Usuário não encontrado'], 404);
+    responder([
+        'error' => true,
+        'status' => 404,
+        'message' => 'Usuário não encontrado'
+    ], 404);
 }
 
 if ($metodo === 'DELETE') {
     if ($id === null) {
-        responder(['erro' => 'Informe o ID'], 400);
+        responder([
+            'error' => true,
+            'status' => 400,
+            'message' => 'Informe o ID'
+        ], 400);
     }
 
     foreach ($usuarios as $indice => $usuario) {
@@ -164,7 +362,15 @@ if ($metodo === 'DELETE') {
         }
     }
 
-    responder(['erro' => 'Usuário não encontrado'], 404);
+    responder([
+        'error' => true,
+        'status' => 404,
+        'message' => 'Usuário não encontrado'
+    ], 404);
 }
 
-responder(['erro' => 'Método não permitido'], 405);
+responder([
+    'error' => true,
+    'status' => 405,
+    'message' => 'Método não permitido'
+], 405);
