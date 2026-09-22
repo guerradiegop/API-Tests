@@ -434,3 +434,139 @@ A interface web possui campos específicos para testar:
 - ordenação crescente ou decrescente.
 
 A URL que será enviada pela requisição GET é exibida na própria tela antes da execução.
+
+
+## Múltiplas bases JSON
+
+O projeto também permite trabalhar com diferentes bases de dados em formato JSON.
+
+A base original continua sendo:
+
+```text
+dados.json
+```
+
+Além dela, é possível anexar até **5 arquivos JSON adicionais** pela própria interface.
+
+Os arquivos enviados são armazenados em:
+
+```text
+bases/
+```
+
+### Selecionando a base ativa
+
+Na interface existe o campo **Base ativa**.
+
+Todas as requisições de CRUD usam somente a base selecionada.
+
+Por exemplo:
+
+```http
+GET /api.php?base=clientes.json
+```
+
+```http
+GET /api.php?base=clientes.json&id=3
+```
+
+```http
+PATCH /api.php?base=clientes.json&id=3
+```
+
+Assim, alterações feitas em uma base não afetam as demais.
+
+### Enviando uma base JSON
+
+O upload é feito pela interface usando `multipart/form-data`.
+
+Internamente, a chamada usa:
+
+```http
+POST /api.php?action=upload-base
+```
+
+Cada arquivo pode ter no máximo **2 MB**.
+
+O limite é de **5 bases anexadas**, além da base padrão `dados.json`.
+
+### Formato esperado do JSON
+
+O arquivo deve conter um array de usuários na raiz:
+
+```json
+[
+  {
+    "id": 1,
+    "nome": "Maria Silva",
+    "email": "maria@email.com",
+    "idade": 28
+  },
+  {
+    "id": 2,
+    "nome": "João Souza",
+    "email": "joao@email.com",
+    "idade": 35
+  }
+]
+```
+
+Cada registro precisa ter:
+
+- `id`: inteiro positivo e único;
+- `nome`: entre 3 e 100 caracteres;
+- `email`: válido e único na base;
+- `idade`: inteiro entre 0 e 120.
+
+Se o arquivo não estiver nesse formato, a API rejeita o upload e retorna os erros encontrados.
+
+### Listando as bases disponíveis
+
+```http
+GET /api.php?action=bases
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "max_uploads": 5,
+  "uploads_utilizados": 2,
+  "bases": [
+    {
+      "id": "dados.json",
+      "nome": "Base padrão",
+      "arquivo": "dados.json",
+      "padrao": true
+    },
+    {
+      "id": "clientes.json",
+      "nome": "clientes",
+      "arquivo": "clientes.json",
+      "padrao": false
+    }
+  ]
+}
+```
+
+### Removendo uma base anexada
+
+Bases anexadas podem ser removidas pela interface ou pela API:
+
+```http
+DELETE /api.php?action=delete-base&base=clientes.json
+```
+
+A base padrão `dados.json` não pode ser removida.
+
+### Estrutura atualizada
+
+```text
+API-Tests/
+├── api.php
+├── index.html
+├── dados.json
+├── bases/
+│   └── .gitkeep
+└── README.md
+```
