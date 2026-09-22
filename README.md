@@ -229,6 +229,7 @@ A API utiliza códigos HTTP para indicar o resultado das operações.
 | `400` | Dados obrigatórios não foram enviados |
 | `404` | Usuário não encontrado |
 | `405` | Método HTTP não permitido |
+| `422` | Dados enviados não passaram pela validação |
 
 ## Como o JavaScript envia as requisições
 
@@ -300,7 +301,6 @@ Este projeto foi mantido propositalmente simples para fins de estudo. Alguns pr�
 - acessar o banco com PDO;
 - criar rotas como `/usuarios/1`;
 - separar HTML, CSS e JavaScript em arquivos diferentes;
-- validar e-mails;
 - adicionar autenticação;
 - criar uma API orientada a objetos;
 - utilizar frameworks como Laravel;
@@ -309,3 +309,130 @@ Este projeto foi mantido propositalmente simples para fins de estudo. Alguns pr�
 ## Licença
 
 Projeto criado para estudos e prática de requisições HTTP.
+
+
+## Validação de dados
+
+A API agora valida os dados recebidos em `POST`, `PUT` e `PATCH`.
+
+Regras implementadas:
+
+- nome obrigatório, com 3 a 100 caracteres;
+- e-mail obrigatório e em formato válido;
+- e-mail não pode estar duplicado;
+- idade deve ser um número inteiro entre 0 e 120;
+- `PATCH` precisa enviar pelo menos um campo.
+
+Quando houver erro de validação, a API retorna `422 Unprocessable Content`.
+
+Exemplo:
+
+```json
+{
+  "error": true,
+  "status": 422,
+  "message": "Dados inválidos",
+  "errors": {
+    "email": "Informe um e-mail válido."
+  }
+}
+```
+
+## Filtros de busca
+
+O endpoint de listagem aceita filtros por query string.
+
+### Filtrar por nome
+
+```http
+GET /api.php?nome=maria
+```
+
+A busca é parcial e não diferencia maiúsculas de minúsculas.
+
+### Filtrar por e-mail
+
+```http
+GET /api.php?email=@gmail.com
+```
+
+### Filtrar por idade
+
+```http
+GET /api.php?idade=25
+```
+
+Os filtros podem ser combinados:
+
+```http
+GET /api.php?nome=maria&idade=25
+```
+
+## Ordenação
+
+A listagem também aceita os parâmetros `sort` e `order`.
+
+Campos permitidos em `sort`:
+
+- `id`
+- `nome`
+- `email`
+- `idade`
+
+Valores permitidos em `order`:
+
+- `asc`
+- `desc`
+
+Exemplos:
+
+```http
+GET /api.php?sort=nome&order=asc
+```
+
+```http
+GET /api.php?sort=idade&order=desc
+```
+
+Também é possível combinar filtros e ordenação:
+
+```http
+GET /api.php?nome=ana&sort=idade&order=desc
+```
+
+A resposta da listagem agora inclui metadados:
+
+```json
+{
+  "total": 2,
+  "filtros": {
+    "nome": "ana",
+    "email": null,
+    "idade": null
+  },
+  "ordenacao": {
+    "campo": "idade",
+    "direcao": "desc"
+  },
+  "dados": [
+    {
+      "id": 3,
+      "nome": "Ana Souza",
+      "email": "ana@email.com",
+      "idade": 32
+    }
+  ]
+}
+```
+
+## Interface para filtros e ordenação
+
+A interface web possui campos específicos para testar:
+
+- busca parcial por nome;
+- busca parcial por e-mail;
+- filtro por idade exata;
+- ordenação por ID, nome, e-mail ou idade;
+- ordenação crescente ou decrescente.
+
+A URL que será enviada pela requisição GET é exibida na própria tela antes da execução.
