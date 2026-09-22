@@ -7,549 +7,502 @@
     <title>API Tests — Laboratório HTTP</title>
     <style>
         :root {
-            --bg: #181818;
-            --surface: #222;
-            --surface-2: #2b2b2b;
-            --border: #383838;
-            --text: #f5f5f5;
-            --muted: #a8a8a8;
-            --orange: #ff7a00;
-            --orange-hover: #ff941f;
-            --orange-soft: rgba(255, 122, 0, 0.14);
-            --success: #54d98c;
-            --danger: #ff6b6b;
-            --radius: 16px;
-            --shadow: 0 20px 50px rgba(0, 0, 0, .28);
+            --bg:#181818; --surface:#222; --surface-2:#2b2b2b; --border:#383838;
+            --text:#f5f5f5; --muted:#a8a8a8; --orange:#ff7a00; --orange-hover:#ff941f;
+            --orange-soft:rgba(255,122,0,.14); --success:#54d98c; --danger:#ff6b6b;
+            --radius:16px; --shadow:0 20px 50px rgba(0,0,0,.28);
         }
 
-        * { box-sizing: border-box; }
-
+        * { box-sizing:border-box; }
         body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background:
-                radial-gradient(circle at top right, rgba(255, 122, 0, .08), transparent 28%),
-                var(--bg);
-            color: var(--text);
+            margin:0; min-height:100vh;
+            font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+            background:radial-gradient(circle at top right,rgba(255,122,0,.08),transparent 28%),var(--bg);
+            color:var(--text);
         }
 
-        button, input, select { font: inherit; }
-
-        .page {
-            width: min(1160px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 48px 0 56px;
+        button,input,select { font:inherit; }
+        .page { width:min(1160px,calc(100% - 32px)); margin:0 auto; padding:48px 0 56px; }
+        .hero { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; margin-bottom:28px; }
+        .eyebrow { display:inline-flex; align-items:center; gap:8px; color:var(--orange); font-size:.78rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; margin-bottom:10px; }
+        .eyebrow::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--orange); box-shadow:0 0 0 6px var(--orange-soft); }
+        h1 { margin:0; font-size:clamp(2rem,5vw,3.6rem); line-height:.98; letter-spacing:-.04em; }
+        .hero p { margin:14px 0 0; color:var(--muted); max-width:760px; line-height:1.6; }
+        .status-badge { white-space:nowrap; padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:.85rem; }
+        .layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.9fr); gap:20px; }
+        .stack { display:grid; gap:20px; }
+        .card { background:linear-gradient(180deg,rgba(255,255,255,.018),transparent),var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+        .card-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 22px; border-bottom:1px solid var(--border); }
+        .card-header h2 { margin:0; font-size:1rem; }
+        .card-header span { color:var(--muted); font-size:.8rem; }
+        .card-body { padding:22px; }
+        .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .field { display:grid; gap:7px; }
+        .field.full { grid-column:1/-1; }
+        .field label { color:#d8d8d8; font-size:.82rem; font-weight:700; }
+        .field input,.field select {
+            width:100%; border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+            border-radius:11px; padding:12px 13px; outline:none;
+            transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
         }
-
-        .hero {
-            display: flex;
-            justify-content: space-between;
-            gap: 24px;
-            align-items: flex-end;
-            margin-bottom: 28px;
+        .field input::placeholder { color:#757575; }
+        .field input:focus,.field select:focus { border-color:var(--orange); box-shadow:0 0 0 3px var(--orange-soft); background:#303030; }
+        input[type="file"] { padding:9px; }
+        input[type="file"]::file-selector-button {
+            border:0; border-radius:8px; padding:8px 10px; margin-right:10px;
+            background:var(--orange-soft); color:var(--orange); font-weight:800; cursor:pointer;
         }
+        .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+        .btn { border:1px solid var(--border); border-radius:11px; padding:12px 14px; cursor:pointer; font-weight:800; transition:transform .15s ease,border-color .15s ease,background .15s ease; }
+        .btn:hover { transform:translateY(-1px); }
+        .btn:active { transform:translateY(0); }
+        .btn:disabled { cursor:not-allowed; opacity:.45; transform:none; }
+        .btn-primary { background:var(--orange); color:#191919; border-color:var(--orange); }
+        .btn-primary:hover:not(:disabled) { background:var(--orange-hover); border-color:var(--orange-hover); }
+        .btn-secondary { background:var(--surface-2); color:var(--text); }
+        .btn-secondary:hover:not(:disabled) { border-color:#555; background:#333; }
+        .btn-danger { background:transparent; color:var(--danger); border-color:rgba(255,107,107,.35); }
+        .btn-danger:hover:not(:disabled) { background:rgba(255,107,107,.08); }
+        .method { display:inline-flex; align-items:center; justify-content:center; min-width:58px; padding:4px 7px; border-radius:7px; margin-right:8px; background:var(--orange-soft); color:var(--orange); font-size:.72rem; letter-spacing:.04em; }
+        .response-card { min-height:100%; }
+        .response-meta { display:flex; align-items:center; gap:10px; }
+        .response-meta strong { font-size:.86rem; }
+        .response-meta .ok { color:var(--success); }
+        .response-meta .error { color:var(--danger); }
+        pre { margin:0; min-height:650px; padding:22px; overflow:auto; background:#121212; color:#f2f2f2; font:.9rem/1.65 "SFMono-Regular",Consolas,"Liberation Mono",monospace; white-space:pre-wrap; word-break:break-word; }
+        .hint { margin-top:14px; color:var(--muted); font-size:.82rem; line-height:1.5; }
+        .query-preview { margin-top:14px; padding:11px 12px; border-radius:10px; background:#171717; border:1px solid var(--border); color:#cfcfcf; font:.8rem/1.5 "SFMono-Regular",Consolas,monospace; overflow-wrap:anywhere; }
+        .database-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:end; }
+        .database-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        .count { color:var(--orange); font-weight:800; }
+        .upload-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; margin-top:14px; align-items:end; }
 
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--orange);
-            font-size: .78rem;
-            font-weight: 800;
-            letter-spacing: .12em;
-            text-transform: uppercase;
-            margin-bottom: 10px;
+        @media (max-width:860px) {
+            .layout { grid-template-columns:1fr; }
+            .hero { align-items:flex-start; flex-direction:column; }
+            pre { min-height:300px; }
         }
-
-        .eyebrow::before {
-            content: "";
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--orange);
-            box-shadow: 0 0 0 6px var(--orange-soft);
-        }
-
-        h1 {
-            margin: 0;
-            font-size: clamp(2rem, 5vw, 3.6rem);
-            line-height: .98;
-            letter-spacing: -.04em;
-        }
-
-        .hero p {
-            margin: 14px 0 0;
-            color: var(--muted);
-            max-width: 760px;
-            line-height: 1.6;
-        }
-
-        .status-badge {
-            white-space: nowrap;
-            padding: 10px 14px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--muted);
-            font-size: .85rem;
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(340px, .9fr);
-            gap: 20px;
-        }
-
-        .stack { display: grid; gap: 20px; }
-
-        .card {
-            background: linear-gradient(180deg, rgba(255,255,255,.018), transparent), var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 20px 22px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-header h2 { margin: 0; font-size: 1rem; }
-        .card-header span { color: var(--muted); font-size: .8rem; }
-        .card-body { padding: 22px; }
-
-        .fields {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
-        }
-
-        .field { display: grid; gap: 7px; }
-
-        .field label {
-            color: #d8d8d8;
-            font-size: .82rem;
-            font-weight: 700;
-        }
-
-        .field input,
-        .field select {
-            width: 100%;
-            border: 1px solid var(--border);
-            background: var(--surface-2);
-            color: var(--text);
-            border-radius: 11px;
-            padding: 12px 13px;
-            outline: none;
-            transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
-        }
-
-        .field input::placeholder { color: #757575; }
-
-        .field input:focus,
-        .field select:focus {
-            border-color: var(--orange);
-            box-shadow: 0 0 0 3px var(--orange-soft);
-            background: #303030;
-        }
-
-        .actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .btn {
-            border: 1px solid var(--border);
-            border-radius: 11px;
-            padding: 12px 14px;
-            cursor: pointer;
-            font-weight: 800;
-            transition: transform .15s ease, border-color .15s ease, background .15s ease;
-        }
-
-        .btn:hover { transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-
-        .btn-primary {
-            background: var(--orange);
-            color: #191919;
-            border-color: var(--orange);
-        }
-
-        .btn-primary:hover {
-            background: var(--orange-hover);
-            border-color: var(--orange-hover);
-        }
-
-        .btn-secondary {
-            background: var(--surface-2);
-            color: var(--text);
-        }
-
-        .btn-secondary:hover {
-            border-color: #555;
-            background: #333;
-        }
-
-        .method {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 58px;
-            padding: 4px 7px;
-            border-radius: 7px;
-            margin-right: 8px;
-            background: var(--orange-soft);
-            color: var(--orange);
-            font-size: .72rem;
-            letter-spacing: .04em;
-        }
-
-        .response-card { min-height: 100%; }
-
-        .response-meta {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .response-meta strong { font-size: .86rem; }
-        .response-meta .ok { color: var(--success); }
-        .response-meta .error { color: var(--danger); }
-
-        pre {
-            margin: 0;
-            min-height: 560px;
-            padding: 22px;
-            overflow: auto;
-            background: #121212;
-            color: #f2f2f2;
-            font: .9rem/1.65 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .hint {
-            margin-top: 14px;
-            color: var(--muted);
-            font-size: .82rem;
-            line-height: 1.5;
-        }
-
-        .divider {
-            height: 1px;
-            background: var(--border);
-            margin: 20px 0;
-        }
-
-        .query-preview {
-            margin-top: 14px;
-            padding: 11px 12px;
-            border-radius: 10px;
-            background: #171717;
-            border: 1px solid var(--border);
-            color: #cfcfcf;
-            font: .8rem/1.5 "SFMono-Regular", Consolas, monospace;
-            overflow-wrap: anywhere;
-        }
-
-        @media (max-width: 860px) {
-            .layout { grid-template-columns: 1fr; }
-            .hero { align-items: flex-start; flex-direction: column; }
-            pre { min-height: 300px; }
-        }
-
-        @media (max-width: 560px) {
-            .page { width: min(100% - 20px, 1160px); padding-top: 28px; }
-            .fields, .actions { grid-template-columns: 1fr; }
-            .card-body, .card-header { padding-left: 16px; padding-right: 16px; }
+        @media (max-width:560px) {
+            .page { width:min(100% - 20px,1160px); padding-top:28px; }
+            .fields,.actions,.database-toolbar,.upload-row { grid-template-columns:1fr; }
+            .card-body,.card-header { padding-left:16px; padding-right:16px; }
         }
     </style>
 </head>
 
 <body>
-    <main class="page">
-        <section class="hero">
-            <div>
-                <div class="eyebrow">API Tests</div>
-                <h1>Laboratório HTTP</h1>
-                <p>Pratique CRUD, validação, filtros de busca e ordenação usando PHP e Fetch API.</p>
-            </div>
+<main class="page">
+    <section class="hero">
+        <div>
+            <div class="eyebrow">API Tests</div>
+            <h1>Laboratório HTTP</h1>
+            <p>Pratique CRUD, validação, filtros, ordenação e requisições em diferentes bases JSON.</p>
+        </div>
+        <div class="status-badge">PHP + Fetch API</div>
+    </section>
 
-            <div class="status-badge">PHP + Fetch API</div>
-        </section>
-
-        <section class="layout">
-            <div class="stack">
-                <article class="card">
-                    <div class="card-header">
-                        <h2>Dados do usuário</h2>
-                        <span>POST, PUT, PATCH e busca por ID</span>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="fields">
-                            <div class="field">
-                                <label for="id">ID</label>
-                                <input type="number" id="id" min="1" placeholder="Ex.: 1">
-                            </div>
-
-                            <div class="field">
-                                <label for="idade">Idade</label>
-                                <input type="number" id="idade" min="0" max="120" placeholder="Ex.: 28">
-                            </div>
-
-                            <div class="field">
-                                <label for="nome">Nome</label>
-                                <input type="text" id="nome" maxlength="100" placeholder="Ex.: Maria Silva">
-                            </div>
-
-                            <div class="field">
-                                <label for="email">E-mail</label>
-                                <input type="email" id="email" placeholder="maria@email.com">
-                            </div>
-                        </div>
-
-                        <p class="hint">Validações: nome entre 3 e 100 caracteres, e-mail válido e único, idade inteira entre 0 e 120.</p>
-                    </div>
-                </article>
-
-                <article class="card">
-                    <div class="card-header">
-                        <h2>Filtros e ordenação</h2>
-                        <span>Usados no GET de listagem</span>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="fields">
-                            <div class="field">
-                                <label for="filtroNome">Nome contém</label>
-                                <input type="text" id="filtroNome" placeholder="Ex.: maria" oninput="atualizarPreview()">
-                            </div>
-
-                            <div class="field">
-                                <label for="filtroEmail">E-mail contém</label>
-                                <input type="text" id="filtroEmail" placeholder="@email.com" oninput="atualizarPreview()">
-                            </div>
-
-                            <div class="field">
-                                <label for="filtroIdade">Idade exata</label>
-                                <input type="number" id="filtroIdade" min="0" max="120" placeholder="Ex.: 25" oninput="atualizarPreview()">
-                            </div>
-
-                            <div class="field">
-                                <label for="sort">Ordenar por</label>
-                                <select id="sort" onchange="atualizarPreview()">
-                                    <option value="id">ID</option>
-                                    <option value="nome">Nome</option>
-                                    <option value="email">E-mail</option>
-                                    <option value="idade">Idade</option>
-                                </select>
-                            </div>
-
-                            <div class="field">
-                                <label for="order">Direção</label>
-                                <select id="order" onchange="atualizarPreview()">
-                                    <option value="asc">Crescente</option>
-                                    <option value="desc">Decrescente</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="query-preview" id="queryPreview">GET api.php?sort=id&order=asc</div>
-                    </div>
-                </article>
-
-                <article class="card">
-                    <div class="card-header">
-                        <h2>Requisições</h2>
-                        <span>Escolha uma operação</span>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="actions">
-                            <button class="btn btn-secondary" onclick="listar()"><span class="method">GET</span>Listar / filtrar</button>
-                            <button class="btn btn-secondary" onclick="buscar()"><span class="method">GET</span>Buscar por ID</button>
-                            <button class="btn btn-primary" onclick="criar()"><span class="method">POST</span>Criar</button>
-                            <button class="btn btn-secondary" onclick="substituir()"><span class="method">PUT</span>Substituir</button>
-                            <button class="btn btn-secondary" onclick="atualizar()"><span class="method">PATCH</span>Atualizar</button>
-                            <button class="btn btn-secondary" onclick="excluir()"><span class="method">DELETE</span>Excluir</button>
-                        </div>
-
-                        <p class="hint">No PATCH, deixe em branco os campos que não deseja alterar. No PUT, informe nome, e-mail e idade.</p>
-                    </div>
-                </article>
-            </div>
-
-            <article class="card response-card">
+    <section class="layout">
+        <div class="stack">
+            <article class="card">
                 <div class="card-header">
-                    <h2>Resposta da API</h2>
-                    <div class="response-meta">
-                        <strong id="statusText">Aguardando requisição</strong>
-                    </div>
+                    <h2>Base de dados</h2>
+                    <span><span id="basesCount" class="count">0/5</span> anexadas</span>
                 </div>
+                <div class="card-body">
+                    <div class="database-toolbar">
+                        <div class="field">
+                            <label for="baseSelect">Base ativa</label>
+                            <select id="baseSelect" onchange="trocarBase()">
+                                <option value="dados.json">Base padrão</option>
+                            </select>
+                        </div>
+                        <div class="database-actions">
+                            <button id="removeBaseBtn" class="btn btn-danger" onclick="removerBase()" disabled>Remover base</button>
+                        </div>
+                    </div>
 
-                <pre id="resultado">{
-  "mensagem": "Escolha uma operação para começar."
-}</pre>
+                    <div class="upload-row">
+                        <div class="field">
+                            <label for="baseFile">Anexar base JSON</label>
+                            <input type="file" id="baseFile" accept=".json,application/json">
+                        </div>
+                        <button id="uploadBtn" class="btn btn-primary" onclick="enviarBase()">Anexar JSON</button>
+                    </div>
+
+                    <p class="hint">Você pode anexar até 5 bases, com no máximo 2 MB cada. O JSON deve ser um array de usuários contendo <strong>id</strong>, <strong>nome</strong>, <strong>email</strong> e <strong>idade</strong>.</p>
+                </div>
             </article>
-        </section>
-    </main>
 
-    <script>
-        const API = 'api.php';
+            <article class="card">
+                <div class="card-header">
+                    <h2>Dados do usuário</h2>
+                    <span>CRUD na base selecionada</span>
+                </div>
+                <div class="card-body">
+                    <div class="fields">
+                        <div class="field">
+                            <label for="id">ID</label>
+                            <input type="number" id="id" min="1" placeholder="Ex.: 1">
+                        </div>
+                        <div class="field">
+                            <label for="idade">Idade</label>
+                            <input type="number" id="idade" min="0" max="120" placeholder="Ex.: 28">
+                        </div>
+                        <div class="field">
+                            <label for="nome">Nome</label>
+                            <input type="text" id="nome" maxlength="100" placeholder="Ex.: Maria Silva">
+                        </div>
+                        <div class="field">
+                            <label for="email">E-mail</label>
+                            <input type="email" id="email" placeholder="maria@email.com">
+                        </div>
+                    </div>
+                    <p class="hint">Todas as operações abaixo serão executadas somente na base atualmente selecionada.</p>
+                </div>
+            </article>
 
-        function valor(id) {
-            return document.getElementById(id).value.trim();
+            <article class="card">
+                <div class="card-header">
+                    <h2>Filtros e ordenação</h2>
+                    <span>Usados no GET de listagem</span>
+                </div>
+                <div class="card-body">
+                    <div class="fields">
+                        <div class="field">
+                            <label for="filtroNome">Nome contém</label>
+                            <input type="text" id="filtroNome" placeholder="Ex.: maria" oninput="atualizarPreview()">
+                        </div>
+                        <div class="field">
+                            <label for="filtroEmail">E-mail contém</label>
+                            <input type="text" id="filtroEmail" placeholder="@email.com" oninput="atualizarPreview()">
+                        </div>
+                        <div class="field">
+                            <label for="filtroIdade">Idade exata</label>
+                            <input type="number" id="filtroIdade" min="0" max="120" placeholder="Ex.: 25" oninput="atualizarPreview()">
+                        </div>
+                        <div class="field">
+                            <label for="sort">Ordenar por</label>
+                            <select id="sort" onchange="atualizarPreview()">
+                                <option value="id">ID</option>
+                                <option value="nome">Nome</option>
+                                <option value="email">E-mail</option>
+                                <option value="idade">Idade</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="order">Direção</label>
+                            <select id="order" onchange="atualizarPreview()">
+                                <option value="asc">Crescente</option>
+                                <option value="desc">Decrescente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="query-preview" id="queryPreview"></div>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-header">
+                    <h2>Requisições</h2>
+                    <span>Escolha uma operação</span>
+                </div>
+                <div class="card-body">
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="listar()"><span class="method">GET</span>Listar / filtrar</button>
+                        <button class="btn btn-secondary" onclick="buscar()"><span class="method">GET</span>Buscar por ID</button>
+                        <button class="btn btn-primary" onclick="criar()"><span class="method">POST</span>Criar</button>
+                        <button class="btn btn-secondary" onclick="substituir()"><span class="method">PUT</span>Substituir</button>
+                        <button class="btn btn-secondary" onclick="atualizar()"><span class="method">PATCH</span>Atualizar</button>
+                        <button class="btn btn-secondary" onclick="excluir()"><span class="method">DELETE</span>Excluir</button>
+                    </div>
+                    <p class="hint">No PATCH, deixe em branco os campos que não deseja alterar. No PUT, informe nome, e-mail e idade.</p>
+                </div>
+            </article>
+        </div>
+
+        <article class="card response-card">
+            <div class="card-header">
+                <h2>Resposta da API</h2>
+                <div class="response-meta">
+                    <strong id="statusText">Aguardando requisição</strong>
+                </div>
+            </div>
+            <pre id="resultado">{
+  "mensagem": "Carregando bases disponíveis..."
+}</pre>
+        </article>
+    </section>
+</main>
+
+<script>
+    const API = 'api.php';
+
+    function valor(id) {
+        return document.getElementById(id).value.trim();
+    }
+
+    function baseAtual() {
+        return document.getElementById('baseSelect').value || 'dados.json';
+    }
+
+    function mostrar(dados) {
+        document.getElementById('resultado').textContent = JSON.stringify(dados, null, 2);
+    }
+
+    function definirStatus(texto, tipo = '') {
+        const status = document.getElementById('statusText');
+        status.textContent = texto;
+        status.className = tipo;
+    }
+
+    function urlApi(params = {}) {
+        const query = new URLSearchParams({ base: baseAtual(), ...params });
+        return `${API}?${query.toString()}`;
+    }
+
+    function montarQueryListagem() {
+        const params = {};
+        if (valor('filtroNome')) params.nome = valor('filtroNome');
+        if (valor('filtroEmail')) params.email = valor('filtroEmail');
+        if (valor('filtroIdade')) params.idade = valor('filtroIdade');
+        params.sort = valor('sort');
+        params.order = valor('order');
+        return params;
+    }
+
+    function atualizarPreview() {
+        document.getElementById('queryPreview').textContent =
+            `GET ${urlApi(montarQueryListagem())}`;
+    }
+
+    async function requisicao(url, opcoes = {}) {
+        definirStatus('Enviando...');
+
+        try {
+            const resposta = await fetch(url, opcoes);
+            const texto = await resposta.text();
+            let dados;
+
+            try { dados = JSON.parse(texto); }
+            catch { dados = texto; }
+
+            definirStatus(
+                `${resposta.status} ${resposta.ok ? 'Sucesso' : 'Erro'}`,
+                resposta.ok ? 'ok' : 'error'
+            );
+
+            mostrar({
+                metodo: opcoes.method || 'GET',
+                base: baseAtual(),
+                url,
+                status: resposta.status,
+                dados
+            });
+
+            return { resposta, dados };
+        } catch (erro) {
+            definirStatus('Falha de conexão', 'error');
+            mostrar({ erro: erro.message });
+            return null;
         }
+    }
 
-        function mostrar(dados) {
-            document.getElementById('resultado').textContent = JSON.stringify(dados, null, 2);
-        }
+    async function carregarBases(baseParaSelecionar = null) {
+        try {
+            const resposta = await fetch(`${API}?action=bases`);
+            const dados = await resposta.json();
 
-        function definirStatus(texto, tipo = '') {
-            const status = document.getElementById('statusText');
-            status.textContent = texto;
-            status.className = tipo;
-        }
+            if (!resposta.ok) {
+                definirStatus('Erro ao carregar bases', 'error');
+                mostrar(dados);
+                return;
+            }
 
-        function montarQueryListagem() {
-            const params = new URLSearchParams();
+            const select = document.getElementById('baseSelect');
+            const anterior = baseParaSelecionar || select.value || 'dados.json';
 
-            if (valor('filtroNome')) params.set('nome', valor('filtroNome'));
-            if (valor('filtroEmail')) params.set('email', valor('filtroEmail'));
-            if (valor('filtroIdade')) params.set('idade', valor('filtroIdade'));
+            select.innerHTML = '';
 
-            params.set('sort', valor('sort'));
-            params.set('order', valor('order'));
+            dados.bases.forEach(base => {
+                const option = document.createElement('option');
+                option.value = base.id;
+                option.textContent = base.padrao ? 'Base padrão (dados.json)' : base.arquivo;
+                select.appendChild(option);
+            });
 
-            return params.toString();
-        }
+            const existe = dados.bases.some(base => base.id === anterior);
+            select.value = existe ? anterior : 'dados.json';
 
-        function atualizarPreview() {
-            document.getElementById('queryPreview').textContent =
-                `GET ${API}?${montarQueryListagem()}`;
-        }
+            document.getElementById('basesCount').textContent =
+                `${dados.uploads_utilizados}/${dados.max_uploads}`;
 
-        async function requisicao(url, opcoes = {}) {
-            definirStatus('Enviando...');
+            document.getElementById('uploadBtn').disabled =
+                dados.uploads_utilizados >= dados.max_uploads;
 
-            try {
-                const resposta = await fetch(url, opcoes);
-                const texto = await resposta.text();
-                let dados;
+            atualizarEstadoBase();
+            atualizarPreview();
 
-                try {
-                    dados = JSON.parse(texto);
-                } catch {
-                    dados = texto;
-                }
-
-                definirStatus(
-                    `${resposta.status} ${resposta.ok ? 'Sucesso' : 'Erro'}`,
-                    resposta.ok ? 'ok' : 'error'
-                );
-
+            if (!baseParaSelecionar) {
+                definirStatus('Bases carregadas', 'ok');
                 mostrar({
-                    metodo: opcoes.method || 'GET',
-                    url,
-                    status: resposta.status,
-                    dados
+                    mensagem: 'Selecione uma base e faça uma requisição.',
+                    base_ativa: baseAtual(),
+                    bases_disponiveis: dados.bases
                 });
-            } catch (erro) {
-                definirStatus('Falha de conexão', 'error');
-                mostrar({ erro: erro.message });
             }
+        } catch (erro) {
+            definirStatus('Falha ao carregar bases', 'error');
+            mostrar({ erro: erro.message });
         }
+    }
 
-        function exigirId() {
-            const id = valor('id');
+    function atualizarEstadoBase() {
+        document.getElementById('removeBaseBtn').disabled = baseAtual() === 'dados.json';
+    }
 
-            if (!id) {
-                definirStatus('Informe um ID', 'error');
-                mostrar({ erro: 'Informe um ID para esta operação.' });
-                return null;
-            }
-
-            return id;
-        }
-
-        function listar() {
-            requisicao(`${API}?${montarQueryListagem()}`);
-        }
-
-        function buscar() {
-            const id = exigirId();
-            if (!id) return;
-
-            requisicao(`${API}?id=${encodeURIComponent(id)}`);
-        }
-
-        function criar() {
-            const usuario = {
-                nome: valor('nome'),
-                email: valor('email'),
-                idade: valor('idade') === '' ? null : Number(valor('idade'))
-            };
-
-            requisicao(API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(usuario)
-            });
-        }
-
-        function substituir() {
-            const id = exigirId();
-            if (!id) return;
-
-            const usuario = {
-                nome: valor('nome'),
-                email: valor('email'),
-                idade: valor('idade') === '' ? null : Number(valor('idade'))
-            };
-
-            requisicao(`${API}?id=${encodeURIComponent(id)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(usuario)
-            });
-        }
-
-        function atualizar() {
-            const id = exigirId();
-            if (!id) return;
-
-            const usuario = {};
-
-            if (valor('nome')) usuario.nome = valor('nome');
-            if (valor('email')) usuario.email = valor('email');
-            if (valor('idade') !== '') usuario.idade = Number(valor('idade'));
-
-            requisicao(`${API}?id=${encodeURIComponent(id)}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(usuario)
-            });
-        }
-
-        function excluir() {
-            const id = exigirId();
-            if (!id) return;
-
-            requisicao(`${API}?id=${encodeURIComponent(id)}`, {
-                method: 'DELETE'
-            });
-        }
-
+    function trocarBase() {
+        atualizarEstadoBase();
         atualizarPreview();
-    </script>
+        definirStatus('Base selecionada', 'ok');
+        mostrar({
+            mensagem: 'As próximas requisições usarão esta base.',
+            base: baseAtual()
+        });
+    }
+
+    async function enviarBase() {
+        const input = document.getElementById('baseFile');
+
+        if (!input.files.length) {
+            definirStatus('Selecione um JSON', 'error');
+            mostrar({ erro: 'Escolha um arquivo .json antes de anexar.' });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('base', input.files[0]);
+
+        definirStatus('Enviando base...');
+
+        try {
+            const resposta = await fetch(`${API}?action=upload-base`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const dados = await resposta.json();
+
+            definirStatus(
+                `${resposta.status} ${resposta.ok ? 'Sucesso' : 'Erro'}`,
+                resposta.ok ? 'ok' : 'error'
+            );
+            mostrar(dados);
+
+            if (resposta.ok) {
+                input.value = '';
+                await carregarBases(dados.base.id);
+            }
+        } catch (erro) {
+            definirStatus('Falha no upload', 'error');
+            mostrar({ erro: erro.message });
+        }
+    }
+
+    async function removerBase() {
+        const base = baseAtual();
+
+        if (base === 'dados.json') return;
+
+        if (!confirm(`Remover a base "${base}"? Esta ação exclui o arquivo do servidor.`)) {
+            return;
+        }
+
+        const resultado = await requisicao(
+            `${API}?action=delete-base&base=${encodeURIComponent(base)}`,
+            { method: 'DELETE' }
+        );
+
+        if (resultado?.resposta.ok) {
+            await carregarBases('dados.json');
+        }
+    }
+
+    function exigirId() {
+        const id = valor('id');
+
+        if (!id) {
+            definirStatus('Informe um ID', 'error');
+            mostrar({ erro: 'Informe um ID para esta operação.' });
+            return null;
+        }
+
+        return id;
+    }
+
+    function listar() {
+        requisicao(urlApi(montarQueryListagem()));
+    }
+
+    function buscar() {
+        const id = exigirId();
+        if (!id) return;
+        requisicao(urlApi({ id }));
+    }
+
+    function criar() {
+        const usuario = {
+            nome: valor('nome'),
+            email: valor('email'),
+            idade: valor('idade') === '' ? null : Number(valor('idade'))
+        };
+
+        requisicao(urlApi(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(usuario)
+        });
+    }
+
+    function substituir() {
+        const id = exigirId();
+        if (!id) return;
+
+        const usuario = {
+            nome: valor('nome'),
+            email: valor('email'),
+            idade: valor('idade') === '' ? null : Number(valor('idade'))
+        };
+
+        requisicao(urlApi({ id }), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(usuario)
+        });
+    }
+
+    function atualizar() {
+        const id = exigirId();
+        if (!id) return;
+
+        const usuario = {};
+        if (valor('nome')) usuario.nome = valor('nome');
+        if (valor('email')) usuario.email = valor('email');
+        if (valor('idade') !== '') usuario.idade = Number(valor('idade'));
+
+        requisicao(urlApi({ id }), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(usuario)
+        });
+    }
+
+    function excluir() {
+        const id = exigirId();
+        if (!id) return;
+        requisicao(urlApi({ id }), { method: 'DELETE' });
+    }
+
+    carregarBases();
+</script>
 </body>
 </html>
