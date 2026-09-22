@@ -8,8 +8,6 @@ Projeto simples desenvolvido em **PHP, HTML e JavaScript** para praticar o funci
 - `PATCH`
 - `DELETE`
 
-A aplicação possui uma interface visual em tema **grafite com destaques em laranja**, criada para facilitar os testes e tornar mais claro o que cada requisição envia e recebe.
-
 ## Objetivo
 
 O objetivo do projeto é servir como um pequeno laboratório para entender, na prática, como o navegador se comunica com uma API.
